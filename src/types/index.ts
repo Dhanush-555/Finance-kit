@@ -33,6 +33,7 @@ export interface Auction {
 
 export interface ChitGroup {
   id: string;
+  user_id?: string;
   name: string;
   totalValue: number;
   durationMonths: number;
@@ -50,18 +51,22 @@ export interface ChitGroup {
 
 export interface Loan {
   id: string;
+  user_id?: string;
   type: 'given' | 'taken';
   borrowerOrLenderName: string;
   principal: number;
   interestRate: number;
   loanDate: string; // ISO
-  tenureMonths: number;
-  interestType: 'simple' | 'compound' | 'reducing';
-  emiAmount?: number;
+  tenureMonths: number; // For compatibility, this will store total installments
+  tenureType: 'daily' | 'weekly' | 'monthly';
+  interestType: 'reducing' | 'flat';
+  interestRatePeriod?: 'monthly' | 'annual';
+  emiAmount: number;
   totalRepaymentAmount: number;
   status: 'active' | 'closed';
   emis: EMIPayment[];
   penaltyRate?: number; // percentage for late fee
+  category?: 'personal' | 'gold' | 'business' | 'other';
   notes?: string;
 }
 
@@ -72,10 +77,13 @@ export interface EMIPayment {
   status: 'paid' | 'pending' | 'late';
   paidDate?: string;
   penalty?: number;
+  principalPaid?: number;
+  interest?: number;
 }
 
 export interface Transaction {
   id: string;
+  user_id?: string;
   date: string; // ISO
   amount: number;
   type: 'chit_contribution' | 'chit_receive' | 'loan_emi_paid' | 'loan_emi_received' | 'loan_principal_given' | 'loan_principal_taken' | 'foreman_commission';

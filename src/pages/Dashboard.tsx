@@ -1,13 +1,68 @@
 import React from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { t } from '../i18n/i18n';
-import { TrendingUp, TrendingDown, Wallet, Calendar, CheckCircle, Percent } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, Calendar, CheckCircle, Percent, Sparkles } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { generateSmartSuggestions } from '../utils/suggestionEngine';
+import { SuggestionCard } from '../components/finance/SuggestionCard';
+import { motion } from 'framer-motion';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: { type: 'spring' as const, stiffness: 100 }
+  }
+};
+
+import toast from 'react-hot-toast';
 
 export const Dashboard: React.FC = () => {
-  const { language, loans, chits, transactions } = useFinance();
+  const { language, loans, chits, transactions, isAdmin } = useFinance();
+  const [liveInterest, setLiveInterest] = React.useState(0);
+
+  // Smart notification check
+  React.useEffect(() => {
+    if (!isAdmin) return;
+
+    const soonDue = loans
+      .flatMap(l => l.emis.map(e => ({ ...e, person: l.borrowerOrLenderName })))
+      .filter(e => e.status === 'pending')
+      .filter(e => {
+        const diff = new Date(e.dueDate).getTime() - new Date().getTime();
+        return diff > 0 && diff < 2 * 24 * 60 * 60 * 1000; // 2 days
+      });
+
+    if (soonDue.length > 0) {
+      toast(`You have ${soonDue.length} payments due soon!`, {
+        icon: '🔔',
+        duration: 5000,
+      });
+    }
+  }, [loans, isAdmin]);
+
 
   const totalLent = loans.filter(l => l.type === 'given').reduce((acc, curr) => acc + curr.principal, 0);
+  
+  // Calculate approximate interest per second (assuming 12% annual rate as base)
+  const interestPerSecond = (totalLent * 0.12) / (365 * 24 * 60 * 60);
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setLiveInterest(prev => prev + interestPerSecond);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [interestPerSecond]);
+
   const totalBorrowed = loans.filter(l => l.type === 'taken').reduce((acc, curr) => acc + curr.principal, 0);
   
   const totalCommission = transactions
@@ -33,65 +88,101 @@ export const Dashboard: React.FC = () => {
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
     .slice(0, 5);
 
+  const allSuggestions = loans.flatMap(l => generateSmartSuggestions(l)).slice(0, 3);
+
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <motion.div 
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+      className="space-y-8"
+    >
+      <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-3xl font-black text-slate-900 tracking-tight">{t('dashboard', language)}</h2>
           <p className="text-slate-500 font-medium tracking-tight">Overview of your financial ecosystem.</p>
         </div>
-        <div className="flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-100">
-           <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-           <span className="text-xs font-black text-emerald-700 uppercase tracking-widest">System Live</span>
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+          <div className="flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-100">
+             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+             <span className="text-xs font-black text-emerald-700 uppercase tracking-widest">System Live</span>
+          </div>
+          {liveInterest > 0 && (
+            <div className="flex items-center gap-2 bg-indigo-50 px-4 py-2 rounded-2xl border border-indigo-100">
+               <TrendingUp size={14} className="text-indigo-600" />
+               <span className="text-xs font-black text-indigo-700 uppercase tracking-widest">Live Profit: ₹{liveInterest.toFixed(4)}</span>
+            </div>
+          )}
         </div>
-      </div>
+      </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <motion.div variants={containerVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, i) => (
-          <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+          <motion.div 
+            key={i} 
+            variants={itemVariants}
+            whileHover={{ scale: 1.02 }}
+            className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300"
+          >
             <div className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center mb-4`}>
               <stat.icon size={24} />
             </div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
             <p className={`text-2xl font-black ${stat.color}`}>{stat.value}</p>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
-          <div className="flex justify-between items-center mb-8">
-             <h3 className="text-xl font-black text-slate-900 tracking-tight">Financial Distribution</h3>
-             <div className="flex gap-4">
-                {chartData.map(d => (
-                  <div key={d.name} className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }}></div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{d.name}</span>
-                  </div>
-                ))}
-             </div>
-          </div>
-          <div className="h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 900}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
-                <Tooltip 
-                  cursor={{fill: '#f8fafc'}}
-                  contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px'}}
-                />
-                <Bar dataKey="value" radius={[12, 12, 0, 0]} barSize={50}>
-                  {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+        <div className="lg:col-span-2 space-y-8">
+          <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+            <div className="flex justify-between items-center mb-8">
+               <h3 className="text-xl font-black text-slate-900 tracking-tight">Financial Distribution</h3>
+               <div className="flex gap-4">
+                  {chartData.map(d => (
+                    <div key={d.name} className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }}></div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{d.name}</span>
+                    </div>
                   ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+               </div>
+            </div>
+            <div className="h-80 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 900}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
+                  <Tooltip 
+                    cursor={{fill: '#f8fafc'}}
+                    contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px'}}
+                  />
+                  <Bar dataKey="value" radius={[12, 12, 0, 0]} barSize={50}>
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
+
+          {allSuggestions.length > 0 && (
+            <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+              <div className="flex items-center gap-2 mb-6">
+                <Sparkles size={20} className="text-amber-500" />
+                <h3 className="text-xl font-black text-slate-900 tracking-tight">Smart Recommendations</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {allSuggestions.map((s, i) => (
+                  <SuggestionCard key={i} suggestion={s} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm self-start">
           <h3 className="text-xl font-black text-slate-900 tracking-tight mb-8">Pending Items</h3>
           <div className="space-y-4">
             {upcomingPayments.map((emi, i) => (
@@ -126,7 +217,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

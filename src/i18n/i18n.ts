@@ -34,7 +34,16 @@ export const translations = {
     reducingBalance: "Reducing Balance",
     emiPaid: "EMI Paid",
     principal: "Principal",
-    interest: "Interest"
+    interest: "Interest",
+    prizeAmount: "Prize Amount",
+    registerMember: "Register Member",
+    confirmAuction: "Confirm Auction",
+    loanType: "Loan Type",
+    tenure: "Tenure (Months)",
+    agreementDate: "Agreement Date",
+    saveRecord: "Save Record",
+    finalizeChit: "Finalize Chit",
+    runAuction: "Run Auction"
   },
   ta: {
     appTitle: "ஃபைனான்ஸ் கிட்",
@@ -77,7 +86,9 @@ export const translations = {
     loanType: "கடன் வகை",
     tenure: "கால அளவு (மாதங்கள்)",
     agreementDate: "ஒப்பந்த தேதி",
-    saveRecord: "பதிவை சேமி"
+    saveRecord: "பதிவை சேமி",
+    finalizeChit: "சிட்டை முடிக்கவும்",
+    runAuction: "ஏலத்தை நடத்தவும்"
   }
 };
 

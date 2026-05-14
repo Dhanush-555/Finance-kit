@@ -11,21 +11,30 @@ export const Calculator: React.FC = () => {
   const [rate, setRate] = useState(12);
   const [time, setTime] = useState(1); // years for simple/compound, months for emi
   const [frequency, setFrequency] = useState(12); // compounding frequency
+  const [ratePeriod, setRatePeriod] = useState<'monthly' | 'annual'>('annual');
+  const [emiFrequency, setEmiFrequency] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
 
   const results = useMemo(() => {
+    const isMonthly = ratePeriod === 'monthly';
     if (type === 'simple') {
-      return calculateSimpleInterest(principal, rate, time);
+      const annualRate = isMonthly ? rate * 12 : rate;
+      return calculateSimpleInterest(principal, annualRate, time);
     } else if (type === 'compound') {
-      return calculateCompoundInterest(principal, rate, time, frequency);
+      const annualRate = isMonthly ? rate * 12 : rate;
+      return calculateCompoundInterest(principal, annualRate, time, frequency);
     } else {
-      const emi = calculateEMI(principal, rate, time);
+      let installments = time;
+      if (emiFrequency === 'daily') installments = time * 30;
+      else if (emiFrequency === 'weekly') installments = Math.round(time * 4.3333);
+      
+      const emi = calculateEMI(principal, rate, installments, isMonthly, emiFrequency);
       return {
         emi,
-        total: emi * time,
-        interest: (emi * time) - principal
+        total: emi * installments,
+        interest: (emi * installments) - principal
       };
     }
-  }, [type, principal, rate, time, frequency]);
+  }, [type, principal, rate, time, frequency, ratePeriod, emiFrequency]);
 
   const chartData = [
     { name: 'Principal', value: principal },
@@ -68,13 +77,28 @@ export const Calculator: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Interest Rate (%)</label>
-              <input
-                type="number"
-                value={rate}
-                onChange={(e) => setRate(Number(e.target.value))}
-                className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-1">Interest Rate</label>
+              <div className="flex flex-col gap-2">
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={rate}
+                    onChange={(e) => setRate(Number(e.target.value))}
+                    className="w-full px-4 py-2 pr-8 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
+                </div>
+                <div className="flex bg-slate-100 p-1 rounded-xl">
+                  <button 
+                    onClick={() => setRatePeriod('monthly')}
+                    className={`flex-1 py-1.5 text-[10px] font-black rounded-lg transition-all ${ratePeriod === 'monthly' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-500'}`}
+                  >MONTHLY</button>
+                  <button 
+                    onClick={() => setRatePeriod('annual')}
+                    className={`flex-1 py-1.5 text-[10px] font-black rounded-lg transition-all ${ratePeriod === 'annual' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-500'}`}
+                  >ANNUAL</button>
+                </div>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -87,6 +111,20 @@ export const Calculator: React.FC = () => {
                 className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
               />
             </div>
+            {type === 'emi' && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Repayment Frequency</label>
+                <select
+                  value={emiFrequency}
+                  onChange={(e) => setEmiFrequency(e.target.value as 'daily' | 'weekly' | 'monthly')}
+                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+            )}
             {type === 'compound' && (
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Compounding Frequency</label>
@@ -117,12 +155,14 @@ export const Calculator: React.FC = () => {
                   <p className="text-xl font-bold text-emerald-700">₹{results.total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
                 </div>
              </div>
-             {type === 'emi' && 'emi' in results && (
+              {type === 'emi' && 'emi' in results && (
                <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100">
-                  <p className="text-xs text-indigo-600 font-medium uppercase tracking-wider mb-1">Monthly EMI</p>
+                  <p className="text-xs text-indigo-600 font-medium uppercase tracking-wider mb-1">
+                    {emiFrequency === 'monthly' ? 'Monthly EMI' : (emiFrequency === 'weekly' ? 'Weekly Installment' : 'Daily Installment')}
+                  </p>
                   <p className="text-2xl font-bold text-indigo-700">₹{results.emi.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
                </div>
-             )}
+              )}
           </div>
 
           <div className="h-48 w-full mt-4">

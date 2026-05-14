@@ -6,7 +6,8 @@ import { calculateChitDividend } from '../utils/calculations';
 import type { ChitGroup, Member, Auction, MemberPayment, PaymentStatus } from '../types';
 
 export const ChitFunds: React.FC = () => {
-  const { language, chits, setChits, setTransactions } = useFinance();
+  const { language, chits, setChits, setTransactions, role } = useFinance();
+  const isAdmin = role === 'admin';
   const [showModal, setShowModal] = useState(false);
   const [showAuctionModal, setShowAuctionModal] = useState<string | null>(null);
   const [showMemberModal, setShowMemberModal] = useState<string | null>(null);
@@ -37,7 +38,7 @@ export const ChitFunds: React.FC = () => {
   const handleAddChit = () => {
     const contribution = formData.totalValue / formData.membersCount;
     const newChit: ChitGroup = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: crypto.randomUUID(),
       name: formData.name,
       totalValue: formData.totalValue,
       durationMonths: formData.duration,
@@ -62,7 +63,7 @@ export const ChitFunds: React.FC = () => {
     setChits(chits.map(chit => {
       if (chit.id === showMemberModal) {
         const newMember: Member = {
-          id: Math.random().toString(36).substr(2, 9),
+          id: crypto.randomUUID(),
           name: memberFormData.name,
           phone: memberFormData.phone,
           aadhaar: memberFormData.aadhaar,
@@ -153,19 +154,36 @@ export const ChitFunds: React.FC = () => {
       return c;
     });
 
-    // Record Foreman Commission Transaction
-    setTransactions(prev => [
-      ...prev,
-      {
-        id: Math.random().toString(36).substr(2, 9),
-        date: new Date().toISOString(),
-        amount: auctionResults.commission,
-        type: 'foreman_commission',
-        person: 'System',
-        referenceId: chit.id,
-        notes: `Commission from Month ${chit.currentMonth} Auction`
+    // Record Foreman Commission & Prize Payout Transactions
+    setTransactions(prev => {
+      const newTransactions = [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          date: new Date().toISOString(),
+          amount: auctionResults.commission,
+          type: 'foreman_commission' as const,
+          person: 'System',
+          referenceId: chit.id,
+          notes: `Commission from Month ${chit.currentMonth} Auction`
+        }
+      ];
+      
+      if (auctionData.winningMemberId) {
+        const winningMember = chit.members.find(m => m.id === auctionData.winningMemberId);
+        newTransactions.push({
+          id: crypto.randomUUID(),
+          date: new Date().toISOString(),
+          amount: auctionResults.bidAmount,
+          type: 'chit_receive' as const,
+          person: winningMember?.name || 'Unknown',
+          referenceId: chit.id,
+          notes: `Prize payout for Month ${chit.currentMonth}`
+        });
       }
-    ]);
+      
+      return newTransactions;
+    });
 
     setChits(updatedChits);
     setShowAuctionModal(null);
@@ -202,7 +220,7 @@ export const ChitFunds: React.FC = () => {
       setTransactions(prev => [
         ...prev,
         {
-          id: Math.random().toString(36).substr(2, 9),
+          id: crypto.randomUUID(),
           date: new Date().toISOString(),
           amount: payment.amount,
           type: 'chit_contribution',
@@ -227,13 +245,15 @@ export const ChitFunds: React.FC = () => {
           <h2 className="text-2xl font-bold text-slate-800">{t('chitFundManager', language)}</h2>
           <p className="text-slate-500 text-sm">Authentic Auction-Based Bidding & Dividend Distribution</p>
         </div>
-        <button 
-          onClick={() => setShowModal(true)}
-          className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 font-medium transition-all shadow-lg shadow-emerald-500/20"
-        >
-          <Plus size={20} />
-          {t('add', language)}
-        </button>
+        {isAdmin && (
+          <button 
+            onClick={() => setShowModal(true)}
+            className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 font-medium transition-all shadow-lg shadow-emerald-500/20"
+          >
+            <Plus size={20} />
+            {t('add', language)}
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -248,9 +268,11 @@ export const ChitFunds: React.FC = () => {
                    <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${chit.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
                      {(chit.status || 'active').toUpperCase()}
                    </span>
-                   <button onClick={() => deleteChit(chit.id)} className="text-slate-300 hover:text-red-500 transition-colors">
-                     <Trash2 size={18} />
-                   </button>
+                   {isAdmin && (
+                     <button onClick={() => deleteChit(chit.id)} className="text-slate-300 hover:text-red-500 transition-colors">
+                       <Trash2 size={18} />
+                     </button>
+                   )}
                 </div>
               </div>
               
@@ -270,13 +292,15 @@ export const ChitFunds: React.FC = () => {
 
               <div className="flex items-center justify-between pt-4 border-t border-slate-50">
                 <div className="flex gap-4">
-                  <button 
-                    onClick={() => setShowMemberModal(chit.id)}
-                    className="text-emerald-600 text-xs font-bold hover:text-emerald-700 flex items-center gap-1"
-                    disabled={(chit.members || []).length >= chit.memberCount}
-                  >
-                    <Plus size={14} /> {t('add', language)}
-                  </button>
+                   {isAdmin && (
+                     <button 
+                       onClick={() => setShowMemberModal(chit.id)}
+                       className="text-emerald-600 text-xs font-bold hover:text-emerald-700 flex items-center gap-1"
+                       disabled={(chit.members || []).length >= chit.memberCount}
+                     >
+                       <Plus size={14} /> {t('add', language)}
+                     </button>
+                   )}
                   <button 
                     onClick={() => setShowLedgerModal(chit.id)}
                     className="text-indigo-600 text-xs font-bold hover:text-indigo-700 flex items-center gap-1"
@@ -302,11 +326,7 @@ export const ChitFunds: React.FC = () => {
             <div className="w-full md:w-64 bg-slate-50 p-6 border-l border-slate-100 flex flex-col justify-between">
                <div>
                   <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Auction Center</h4>
-                  {(chit.members || []).length < chit.memberCount ? (
-                    <div className="bg-amber-50 border border-amber-100 p-3 rounded-xl">
-                       <p className="text-[10px] text-amber-700 font-bold leading-tight">Waiting for members ({(chit.members || []).length}/{chit.memberCount})</p>
-                    </div>
-                  ) : (
+                  {isAdmin && (chit.members || []).length >= chit.memberCount && (
                     <button 
                       onClick={() => setShowAuctionModal(chit.id)}
                       disabled={chit.status === 'completed'}
@@ -314,6 +334,16 @@ export const ChitFunds: React.FC = () => {
                     >
                       <Gavel size={18} /> {chit.currentMonth === chit.durationMonths ? t('finalizeChit', language) : t('runAuction', language)}
                     </button>
+                  )}
+                  {!isAdmin && (
+                    <div className="bg-slate-100 p-3 rounded-xl">
+                       <p className="text-[10px] text-slate-500 font-bold leading-tight">View-only mode enabled</p>
+                    </div>
+                  )}
+                  {isAdmin && (chit.members || []).length < chit.memberCount && (
+                    <div className="bg-amber-50 border border-amber-100 p-3 rounded-xl">
+                       <p className="text-[10px] text-amber-700 font-bold leading-tight">Waiting for members ({(chit.members || []).length}/{chit.memberCount})</p>
+                    </div>
                   )}
                </div>
                

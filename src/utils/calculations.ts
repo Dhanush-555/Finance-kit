@@ -22,10 +22,25 @@ export const calculateCompoundInterest = (
   };
 };
 
-export const calculateEMI = (principal: number, annualRate: number, tenureMonths: number) => {
-  const r = annualRate / (12 * 100); // monthly interest rate
-  const n = tenureMonths;
-  
+export const calculateEMI = (
+  principal: number, 
+  rate: number, 
+  tenure: number, 
+  isMonthlyRate: boolean = false,
+  frequency: 'daily' | 'weekly' | 'monthly' = 'monthly'
+) => {
+  let r = 0;
+  if (isMonthlyRate) {
+    if (frequency === 'monthly') r = rate / 100;
+    else if (frequency === 'weekly') r = (rate / (30/7)) / 100;
+    else r = (rate / 30) / 100;
+  } else {
+    if (frequency === 'monthly') r = rate / (12 * 100);
+    else if (frequency === 'weekly') r = rate / (52 * 100);
+    else r = rate / (365 * 100);
+  }
+
+  const n = tenure;
   if (r === 0) return principal / n;
 
   // EMI = [P x r x (1+r)^n] / [(1+r)^n - 1]
@@ -35,30 +50,43 @@ export const calculateEMI = (principal: number, annualRate: number, tenureMonths
 
 export const generateAmortizationSchedule = (
   principal: number,
-  annualRate: number,
-  tenureMonths: number,
+  rate: number,
+  tenure: number,
   startDate: Date = new Date(),
-  interestType: 'reducing' | 'flat' = 'reducing'
+  interestType: 'reducing' | 'flat' = 'reducing',
+  isMonthlyRate: boolean = false,
+  frequency: 'daily' | 'weekly' | 'monthly' = 'monthly'
 ) => {
-  const r = annualRate / (12 * 100);
+  let r = 0;
+  if (isMonthlyRate) {
+    if (frequency === 'monthly') r = rate / 100;
+    else if (frequency === 'weekly') r = (rate / (30/7)) / 100;
+    else r = (rate / 30) / 100;
+  } else {
+    if (frequency === 'monthly') r = rate / (12 * 100);
+    else if (frequency === 'weekly') r = rate / (52 * 100);
+    else r = rate / (365 * 100);
+  }
   
   let emi = 0;
   if (interestType === 'flat') {
-    const totalInterest = (principal * annualRate * (tenureMonths / 12)) / 100;
-    emi = (principal + totalInterest) / tenureMonths;
+    const totalInterest = isMonthlyRate 
+        ? principal * (rate / 100) * (frequency === 'monthly' ? tenure : (frequency === 'weekly' ? (tenure / (30/7)) : (tenure / 30)))
+        : (principal * rate * (tenure / (frequency === 'monthly' ? 12 : (frequency === 'weekly' ? 52 : 365)))) / 100;
+    emi = (principal + totalInterest) / tenure;
   } else {
-    emi = calculateEMI(principal, annualRate, tenureMonths);
+    emi = calculateEMI(principal, rate, tenure, isMonthlyRate, frequency);
   }
   
   const schedule = [];
   let balance = principal;
 
-  for (let i = 1; i <= tenureMonths; i++) {
+  for (let i = 1; i <= tenure; i++) {
     let interest = 0;
     let principalPaid = 0;
 
     if (interestType === 'flat') {
-       interest = ((principal * annualRate * (tenureMonths / 12)) / 100) / tenureMonths;
+       interest = (emi * tenure - principal) / tenure;
        principalPaid = emi - interest;
        balance -= principalPaid;
     } else {
@@ -68,8 +96,17 @@ export const generateAmortizationSchedule = (
     }
 
     const dueDate = new Date(startDate);
-    // Ensure we correctly add months without timezone shift issues
-    dueDate.setUTCMonth(dueDate.getUTCMonth() + i);
+    if (frequency === 'monthly') {
+      const targetMonth = dueDate.getUTCMonth() + i;
+      dueDate.setUTCMonth(targetMonth);
+      if (dueDate.getUTCMonth() !== (targetMonth % 12)) {
+        dueDate.setUTCDate(0);
+      }
+    } else if (frequency === 'weekly') {
+      dueDate.setUTCDate(dueDate.getUTCDate() + (i * 7));
+    } else {
+      dueDate.setUTCDate(dueDate.getUTCDate() + i);
+    }
 
     schedule.push({
       month: i,
