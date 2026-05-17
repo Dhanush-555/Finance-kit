@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { LogIn, UserPlus, Lock, Mail, RefreshCw } from 'lucide-react';
+import { LiquidGradientBackground } from '../components/common/LiquidGradientBackground';
 
 export const Login: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -42,6 +43,9 @@ export const Login: React.FC = () => {
       {/* Background Glow */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 blur-[120px] rounded-full" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 blur-[120px] rounded-full" />
+      
+      {/* The Stripe Liquid Mesh Gradient */}
+      <LiquidGradientBackground />
 
       <div className="w-full max-w-md relative z-10">
         <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-[40px] p-8 shadow-2xl">

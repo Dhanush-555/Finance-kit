@@ -28,6 +28,9 @@ interface FinanceContextType {
   allProfiles: UserProfile[];
   isAdmin: boolean;
   role: string;
+  liveInterest: number;
+  isStealthMode: boolean;
+  toggleStealthMode: () => void;
   updateUserRole: (userId: string, newRole: 'admin' | 'user') => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -44,6 +47,21 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [loans, setLoans, loansLoading] = useSupabaseSync<Loan>('loans');
   const [transactions, setTransactions, txLoading] = useSupabaseSync<Transaction>('transactions');
   const [language, setLanguage] = useLocalStorage<Language>('financekit_language', 'en');
+  const [isStealthMode, setIsStealthMode] = useLocalStorage<boolean>('financekit_stealth', false);
+  const [liveInterest, setLiveInterest] = useState(0);
+
+  const toggleStealthMode = () => setIsStealthMode(prev => !prev);
+
+  // Live Interest Logic (Global)
+  useEffect(() => {
+    const totalLent = loans.filter(l => l.type === 'given').reduce((acc, curr) => acc + curr.principal, 0);
+    const interestPerSecond = (totalLent * 0.12) / (365 * 24 * 60 * 60);
+
+    const timer = setInterval(() => {
+      setLiveInterest(prev => prev + interestPerSecond);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [loans]);
 
   useEffect(() => {
     // Safety Timeout: Force stop loading after 5 seconds if stuck
@@ -176,6 +194,9 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       allProfiles,
       isAdmin,
       role: profile?.role || 'user',
+      liveInterest,
+      isStealthMode,
+      toggleStealthMode,
       updateUserRole,
       signOut
     }}>

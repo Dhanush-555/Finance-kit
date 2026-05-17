@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { useFinance } from '../context/FinanceContext';
 import { t } from '../i18n/i18n';
-import { Plus, CheckCircle, Trash2, BookOpen, Calendar, Sparkles, Edit2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Plus, Search, Calendar, CheckCircle, Trash2, Edit2, FileText, MessageCircle, Sparkles, BookOpen } from 'lucide-react';
+import { generateReceiptPDF, sendWhatsAppReceipt } from '../utils/receiptGenerator';
 import { calculateEMI, generateAmortizationSchedule } from '../utils/calculations';
 import { analyzeLoanHealth, generateSmartSuggestions } from '../utils/suggestionEngine';
 import { SuggestionCard } from '../components/finance/SuggestionCard';
 import type { Loan } from '../types';
+import confetti from 'canvas-confetti';
 
 export const LoanTracker: React.FC = () => {
   const { language, loans, setLoans, setTransactions, isAdmin, user, allProfiles } = useFinance();
@@ -192,6 +195,13 @@ export const LoanTracker: React.FC = () => {
     }]);
 
     setLoans(updatedLoans);
+    toast.success('Payment Received! 🎉');
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#10b981', '#3b82f6', '#6366f1']
+    });
   };
 
   const deleteLoan = (id: string) => {
@@ -398,15 +408,51 @@ export const LoanTracker: React.FC = () => {
                                   </td>
                                   {isAdmin && (
                                     <td className="py-3 text-right">
-                                      {emi.status === 'pending' && (
-                                        <button 
-                                          onClick={() => markEMIPaid(loan.id, emi.id)}
-                                          className="text-[10px] font-black uppercase tracking-widest text-emerald-700 hover:text-white bg-emerald-100 hover:bg-emerald-600 px-4 py-2 rounded-lg transition-all"
-                                        >
-                                          Receive
-                                        </button>
-                                      )}
-                                      {emi.status === 'paid' && <CheckCircle size={16} className="text-emerald-500 ml-auto" />}
+                                      <div className="flex items-center justify-end gap-2">
+                                        {emi.status === 'pending' && (
+                                          <button 
+                                            onClick={() => markEMIPaid(loan.id, emi.id)}
+                                            className="text-[10px] font-black uppercase tracking-widest text-emerald-700 hover:text-white bg-emerald-100 hover:bg-emerald-600 px-4 py-2 rounded-lg transition-all"
+                                          >
+                                            Receive
+                                          </button>
+                                        )}
+                                        {emi.status === 'paid' && (
+                                          <>
+                                            <button 
+                                              onClick={async () => {
+                                                const pdf = await generateReceiptPDF({
+                                                  receiptNo: emi.id.slice(0, 8).toUpperCase(),
+                                                  date: new Date().toLocaleDateString('en-IN'),
+                                                  customerName: loan.borrowerOrLenderName,
+                                                  amount: emi.amount + (emi.penalty || 0),
+                                                  paymentFor: `EMI #${i + 1} for ${loan.borrowerOrLenderName}`,
+                                                  paymentMode: 'Digital/Cash'
+                                                });
+                                                pdf.save(`Receipt_${loan.borrowerOrLenderName}_EMI${i+1}.pdf`);
+                                              }}
+                                              title="Download Receipt"
+                                              className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                            >
+                                              <FileText size={16} />
+                                            </button>
+                                            <button 
+                                              onClick={() => {
+                                                sendWhatsAppReceipt('919999999999', { // Placeholder, ideally use borrower phone
+                                                  customerName: loan.borrowerOrLenderName,
+                                                  amount: emi.amount + (emi.penalty || 0),
+                                                  paymentFor: `EMI #${i + 1} for ${loan.borrowerOrLenderName}`
+                                                });
+                                              }}
+                                              title="Send WhatsApp"
+                                              className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                                            >
+                                              <MessageCircle size={16} />
+                                            </button>
+                                            <CheckCircle size={16} className="text-emerald-500" />
+                                          </>
+                                        )}
+                                      </div>
                                     </td>
                                   )}
                                </tr>
@@ -463,13 +509,25 @@ export const LoanTracker: React.FC = () => {
                <div className="grid grid-cols-2 gap-4">
                  <div>
                     <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Principal (₹)</label>
-                    <input type="number" value={formData.principal} onChange={e => setFormData({...formData, principal: Number(e.target.value)})} className="w-full px-4 py-2 rounded-xl border border-slate-200"/>
+                     <input 
+                       type="number" 
+                       min="0"
+                       value={formData.principal} 
+                       onChange={e => setFormData({...formData, principal: Math.max(0, Number(e.target.value))})} 
+                       className="w-full px-4 py-2 rounded-xl border border-slate-200"
+                     />
                  </div>
                  <div className="flex flex-col">
                     <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Interest Rate</label>
                     <div className="flex gap-2">
                         <div className="relative flex-1">
-                           <input type="number" value={formData.rate} onChange={e => setFormData({...formData, rate: Number(e.target.value)})} className="w-full px-4 py-2 pr-8 rounded-xl border border-slate-200"/>
+                            <input 
+                              type="number" 
+                              min="0"
+                              value={formData.rate} 
+                              onChange={e => setFormData({...formData, rate: Math.max(0, Number(e.target.value))})} 
+                              className="w-full px-4 py-2 pr-8 rounded-xl border border-slate-200"
+                            />
                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
                         </div>
                         <div className="flex bg-slate-100 p-1 rounded-xl">
@@ -507,7 +565,13 @@ export const LoanTracker: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                      <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Tenure (Months)</label>
-                     <input type="number" value={formData.tenure} onChange={e => setFormData({...formData, tenure: Number(e.target.value)})} className="w-full px-4 py-2 rounded-xl border border-slate-200"/>
+                     <input 
+                       type="number" 
+                       min="1"
+                       value={formData.tenure} 
+                       onChange={e => setFormData({...formData, tenure: Math.max(1, Number(e.target.value))})} 
+                       className="w-full px-4 py-2 rounded-xl border border-slate-200"
+                     />
                   </div>
                   <div>
                      <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Frequency</label>

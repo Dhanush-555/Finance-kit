@@ -5,6 +5,7 @@ import { TrendingUp, TrendingDown, Wallet, Calendar, CheckCircle, Percent, Spark
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { generateSmartSuggestions } from '../utils/suggestionEngine';
 import { SuggestionCard } from '../components/finance/SuggestionCard';
+import { NumberCounter } from '../components/common/NumberCounter';
 import { motion } from 'framer-motion';
 
 const containerVariants = {
@@ -27,8 +28,7 @@ const itemVariants = {
 import toast from 'react-hot-toast';
 
 export const Dashboard: React.FC = () => {
-  const { language, loans, chits, transactions, isAdmin } = useFinance();
-  const [liveInterest, setLiveInterest] = React.useState(0);
+  const { language, loans, chits, transactions, isAdmin, liveInterest, isStealthMode } = useFinance();
 
   // Smart notification check
   React.useEffect(() => {
@@ -50,18 +50,7 @@ export const Dashboard: React.FC = () => {
     }
   }, [loans, isAdmin]);
 
-
   const totalLent = loans.filter(l => l.type === 'given').reduce((acc, curr) => acc + curr.principal, 0);
-  
-  // Calculate approximate interest per second (assuming 12% annual rate as base)
-  const interestPerSecond = (totalLent * 0.12) / (365 * 24 * 60 * 60);
-
-  React.useEffect(() => {
-    const timer = setInterval(() => {
-      setLiveInterest(prev => prev + interestPerSecond);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [interestPerSecond]);
 
   const totalBorrowed = loans.filter(l => l.type === 'taken').reduce((acc, curr) => acc + curr.principal, 0);
   
@@ -70,16 +59,16 @@ export const Dashboard: React.FC = () => {
     .reduce((acc, curr) => acc + curr.amount, 0);
 
   const stats = [
-    { label: t('totalLent', language), value: `₹${totalLent.toLocaleString()}`, icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: t('totalBorrowed', language), value: `₹${totalBorrowed.toLocaleString()}`, icon: TrendingDown, color: 'text-orange-600', bg: 'bg-orange-50' },
-    { label: 'Commission Earned', value: `₹${totalCommission.toLocaleString()}`, icon: Percent, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Net Liquidity', value: `₹${(totalLent - totalBorrowed + totalCommission).toLocaleString()}`, icon: Wallet, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+    { label: t('totalLent', language), value: totalLent, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: t('totalBorrowed', language), value: totalBorrowed, icon: TrendingDown, color: 'text-rose-600', bg: 'bg-rose-50' },
+    { label: 'Commission Earned', value: totalCommission, icon: Percent, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: 'Net Liquidity', value: totalLent - totalBorrowed + totalCommission, icon: Wallet, color: 'text-indigo-600', bg: 'bg-indigo-50' },
   ];
 
   const chartData = [
-    { name: 'Lent', value: totalLent, color: '#3b82f6' },
-    { name: 'Borrowed', value: totalBorrowed, color: '#f97316' },
-    { name: 'Commission', value: totalCommission, color: '#10b981' },
+    { name: 'Lent', value: totalLent, color: '#10b981' },
+    { name: 'Borrowed', value: totalBorrowed, color: '#f43f5e' },
+    { name: 'Commission', value: totalCommission, color: '#f59e0b' },
   ];
 
   const upcomingPayments = loans
@@ -99,20 +88,15 @@ export const Dashboard: React.FC = () => {
     >
       <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">{t('dashboard', language)}</h2>
-          <p className="text-slate-500 font-medium tracking-tight">Overview of your financial ecosystem.</p>
+          <h2 className="text-4xl font-black text-slate-900 tracking-tighter premium-text-gradient">{t('dashboard', language)}</h2>
+          <p className="text-slate-400 font-medium tracking-tight text-sm">Overview of your financial ecosystem.</p>
         </div>
         <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-          <div className="flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-100">
+          <div className="flex items-center gap-2 bg-white/50 backdrop-blur-sm px-4 py-2 rounded-2xl border border-slate-100 luxury-shadow">
              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-             <span className="text-xs font-black text-emerald-700 uppercase tracking-widest">System Live</span>
+             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">System Live</span>
           </div>
-          {liveInterest > 0 && (
-            <div className="flex items-center gap-2 bg-indigo-50 px-4 py-2 rounded-2xl border border-indigo-100">
-               <TrendingUp size={14} className="text-indigo-600" />
-               <span className="text-xs font-black text-indigo-700 uppercase tracking-widest">Live Profit: ₹{liveInterest.toFixed(4)}</span>
-            </div>
-          )}
+
         </div>
       </motion.div>
 
@@ -121,21 +105,26 @@ export const Dashboard: React.FC = () => {
           <motion.div 
             key={i} 
             variants={itemVariants}
-            whileHover={{ scale: 1.02 }}
-            className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300"
+            whileHover={{ y: -5 }}
+            className="glass-card p-6 rounded-[2rem] transition-all duration-300"
           >
-            <div className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center mb-4`}>
+            <div className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-2xl flex items-center justify-center mb-6`}>
               <stat.icon size={24} />
             </div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
-            <p className={`text-2xl font-black ${stat.color}`}>{stat.value}</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{stat.label}</p>
+            <NumberCounter 
+              value={stat.value as number} 
+              prefix="₹" 
+              isCurrency={true} 
+              className={`text-3xl font-black tracking-tighter ${stat.color} ${isStealthMode ? 'blur-md select-none' : ''}`} 
+            />
           </motion.div>
         ))}
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+          <div className="bg-fintech-card p-8 rounded-3xl border border-fintech-border shadow-luxury">
             <div className="flex justify-between items-center mb-8">
                <h3 className="text-xl font-black text-slate-900 tracking-tight">Financial Distribution</h3>
                <div className="flex gap-4">
@@ -168,7 +157,7 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {allSuggestions.length > 0 && (
-            <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+            <div className="bg-fintech-card p-8 rounded-3xl border border-fintech-border shadow-luxury">
               <div className="flex items-center gap-2 mb-6">
                 <Sparkles size={20} className="text-amber-500" />
                 <h3 className="text-xl font-black text-slate-900 tracking-tight">Smart Recommendations</h3>
@@ -182,11 +171,22 @@ export const Dashboard: React.FC = () => {
           )}
         </div>
 
-        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm self-start">
+        <div className="bg-fintech-card p-8 rounded-3xl border border-fintech-border shadow-luxury self-start">
           <h3 className="text-xl font-black text-slate-900 tracking-tight mb-8">Pending Items</h3>
-          <div className="space-y-4">
+          <motion.div 
+            className="space-y-4"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+          >
             {upcomingPayments.map((emi, i) => (
-              <div key={i} className="group flex items-center gap-4 p-4 bg-slate-50 hover:bg-emerald-50 rounded-2xl border border-slate-100 hover:border-emerald-100 transition-all cursor-pointer">
+              <motion.div 
+                key={i} 
+                variants={itemVariants}
+                whileHover={{ scale: 1.02 }}
+                className="group flex items-center gap-4 p-4 bg-fintech-bg hover:bg-emerald-50 rounded-2xl border border-fintech-border hover:border-emerald-100 transition-all cursor-pointer"
+              >
                 <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-slate-400 group-hover:text-emerald-500 transition-colors">
                    <Calendar size={20} />
                 </div>
@@ -197,7 +197,7 @@ export const Dashboard: React.FC = () => {
                 <div className="ml-auto">
                    <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
                 </div>
-              </div>
+              </motion.div>
             ))}
             {upcomingPayments.length === 0 && (
               <div className="text-center py-16">
@@ -214,7 +214,7 @@ export const Dashboard: React.FC = () => {
                   <span className="text-emerald-600">{chits.filter(c => c.status === 'active').length} Groups</span>
                </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </motion.div>

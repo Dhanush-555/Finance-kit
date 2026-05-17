@@ -3,6 +3,7 @@ import { useFinance } from '../context/FinanceContext';
 import { t } from '../i18n/i18n';
 import { calculateSimpleInterest, calculateCompoundInterest, calculateEMI } from '../utils/calculations';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const Calculator: React.FC = () => {
   const { language } = useFinance();
@@ -71,8 +72,9 @@ export const Calculator: React.FC = () => {
               <label className="block text-sm font-medium text-slate-700 mb-1">Principal Amount</label>
               <input
                 type="number"
+                min="0"
                 value={principal}
-                onChange={(e) => setPrincipal(Number(e.target.value))}
+                onChange={(e) => setPrincipal(Math.max(0, Number(e.target.value)))}
                 className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
               />
             </div>
@@ -82,8 +84,9 @@ export const Calculator: React.FC = () => {
                 <div className="relative">
                   <input
                     type="number"
+                    min="0"
                     value={rate}
-                    onChange={(e) => setRate(Number(e.target.value))}
+                    onChange={(e) => setRate(Math.max(0, Number(e.target.value)))}
                     className="w-full px-4 py-2 pr-8 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
@@ -106,76 +109,92 @@ export const Calculator: React.FC = () => {
               </label>
               <input
                 type="number"
+                min="1"
                 value={time}
-                onChange={(e) => setTime(Number(e.target.value))}
+                onChange={(e) => setTime(Math.max(1, Number(e.target.value)))}
                 className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
               />
             </div>
-            {type === 'emi' && (
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Repayment Frequency</label>
-                <select
-                  value={emiFrequency}
-                  onChange={(e) => setEmiFrequency(e.target.value as 'daily' | 'weekly' | 'monthly')}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+            <AnimatePresence mode="wait">
+              {type === 'emi' && (
+                <motion.div
+                  key="emi"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
                 >
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                </select>
-              </div>
-            )}
-            {type === 'compound' && (
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Compounding Frequency</label>
-                <select
-                  value={frequency}
-                  onChange={(e) => setFrequency(Number(e.target.value))}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Repayment Frequency</label>
+                  <select
+                    value={emiFrequency}
+                    onChange={(e) => setEmiFrequency(e.target.value as 'daily' | 'weekly' | 'monthly')}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                  >
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </motion.div>
+              )}
+              {type === 'compound' && (
+                <motion.div
+                  key="compound"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
                 >
-                  <option value={12}>Monthly</option>
-                  <option value={4}>Quarterly</option>
-                  <option value={2}>Half-Yearly</option>
-                  <option value={1}>Yearly</option>
-                </select>
-              </div>
-            )}
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Compounding Frequency</label>
+                  <select
+                    value={frequency}
+                    onChange={(e) => setFrequency(Number(e.target.value))}
+                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                  >
+                    <option value={12}>Monthly</option>
+                    <option value={4}>Quarterly</option>
+                    <option value={2}>Half-Yearly</option>
+                    <option value={1}>Yearly</option>
+                  </select>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between overflow-hidden">
           <div className="space-y-4">
-             <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 overflow-hidden">
                   <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-1">Total Interest</p>
-                  <p className="text-xl font-bold text-slate-900">₹{results.interest.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                  <p className="text-lg sm:text-xl font-bold text-slate-900 break-all">₹{results.interest.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
                 </div>
-                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 overflow-hidden">
                   <p className="text-xs text-emerald-600 font-medium uppercase tracking-wider mb-1">Total Amount</p>
-                  <p className="text-xl font-bold text-emerald-700">₹{results.total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                  <p className="text-lg sm:text-xl font-bold text-emerald-700 break-all">₹{results.total.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
                 </div>
              </div>
               {type === 'emi' && 'emi' in results && (
-               <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100">
+               <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100 overflow-hidden">
                   <p className="text-xs text-indigo-600 font-medium uppercase tracking-wider mb-1">
                     {emiFrequency === 'monthly' ? 'Monthly EMI' : (emiFrequency === 'weekly' ? 'Weekly Installment' : 'Daily Installment')}
                   </p>
-                  <p className="text-2xl font-bold text-indigo-700">₹{results.emi.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                  <p className="text-2xl font-bold text-indigo-700 break-all">₹{results.emi.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
                </div>
               )}
           </div>
 
-          <div className="h-48 w-full mt-4">
+          <div className="h-64 w-full mt-4 flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={chartData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
+                  innerRadius={70}
+                  outerRadius={90}
+                  paddingAngle={0}
                   dataKey="value"
+                  stroke="none"
                 >
                   {chartData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
