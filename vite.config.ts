@@ -31,4 +31,17 @@ export default defineConfig({
       }
     })
   ],
+  build: {
+    chunkSizeWarningLimit: 1600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          pdf: ['jspdf', 'jspdf-autotable'],
+          charts: ['recharts'],
+          motion: ['framer-motion']
+        }
+      }
+    }
+  }
 })
