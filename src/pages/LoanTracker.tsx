@@ -20,13 +20,13 @@ export const LoanTracker: React.FC = () => {
   const [formData, setFormData] = useState({
     type: 'given' as 'given' | 'taken',
     name: '',
-    principal: 0,
-    rate: 12,
-    tenure: 12,
+    principal: '' as number | string,
+    rate: 12 as number | string,
+    tenure: 12 as number | string,
     interestType: 'reducing' as 'reducing' | 'flat',
     interestRatePeriod: 'monthly' as 'monthly' | 'annual',
     repaymentFrequency: 'monthly' as 'daily' | 'weekly' | 'monthly',
-    penalty: 50,
+    penalty: 50 as number | string,
     date: new Date().toISOString().split('T')[0],
     category: 'personal' as 'personal' | 'gold' | 'business' | 'other',
     notes: '',
@@ -37,29 +37,34 @@ export const LoanTracker: React.FC = () => {
     const isMonthly = formData.interestRatePeriod === 'monthly';
     const frequency = formData.repaymentFrequency;
     
-    let installments = formData.tenure;
-    if (frequency === 'daily') installments = formData.tenure * 30;
-    else if (frequency === 'weekly') installments = Math.round(formData.tenure * 4.3333);
+    const numPrincipal = Number(formData.principal) || 0;
+    const numRate = Number(formData.rate) || 0;
+    const numTenure = Number(formData.tenure) || 0;
+    const numPenalty = Number(formData.penalty) || 0;
+
+    let installments = numTenure;
+    if (frequency === 'daily') installments = numTenure * 30;
+    else if (frequency === 'weekly') installments = Math.round(numTenure * 4.3333);
 
     let emi = 0;
     if (formData.interestType === 'flat') {
       let periodicRate = 0;
       if (isMonthly) {
-        if (frequency === 'monthly') periodicRate = formData.rate / 100;
-        else if (frequency === 'weekly') periodicRate = (formData.rate / (30/7)) / 100;
-        else periodicRate = (formData.rate / 30) / 100;
+        if (frequency === 'monthly') periodicRate = numRate / 100;
+        else if (frequency === 'weekly') periodicRate = (numRate / (30/7)) / 100;
+        else periodicRate = (numRate / 30) / 100;
       } else {
-        if (frequency === 'monthly') periodicRate = formData.rate / (12 * 100);
-        else if (frequency === 'weekly') periodicRate = formData.rate / (52 * 100);
-        else periodicRate = formData.rate / (365 * 100);
+        if (frequency === 'monthly') periodicRate = numRate / (12 * 100);
+        else if (frequency === 'weekly') periodicRate = numRate / (52 * 100);
+        else periodicRate = numRate / (365 * 100);
       }
-      const totalInterest = formData.principal * periodicRate * installments;
-      emi = (formData.principal + totalInterest) / installments;
+      const totalInterest = numPrincipal * periodicRate * installments;
+      emi = (numPrincipal + totalInterest) / installments;
     } else {
-      emi = calculateEMI(formData.principal, formData.rate, installments, isMonthly, frequency);
+      emi = calculateEMI(numPrincipal, numRate, installments, isMonthly, frequency);
     }
 
-    const emis = generateAmortizationSchedule(formData.principal, formData.rate, installments, new Date(formData.date), formData.interestType, isMonthly, frequency)
+    const emis = generateAmortizationSchedule(numPrincipal, numRate, installments, new Date(formData.date), formData.interestType, isMonthly, frequency)
       .map(item => ({
         id: crypto.randomUUID(),
         dueDate: item.dueDate,
@@ -75,8 +80,8 @@ export const LoanTracker: React.FC = () => {
       id: editingLoanId || crypto.randomUUID(),
       type: formData.type,
       borrowerOrLenderName: formData.name,
-      principal: formData.principal,
-      interestRate: formData.rate,
+      principal: numPrincipal,
+      interestRate: numRate,
       loanDate: formData.date,
       tenureMonths: installments,
       tenureType: formData.repaymentFrequency,
@@ -513,7 +518,7 @@ export const LoanTracker: React.FC = () => {
                        type="number" 
                        min="0"
                        value={formData.principal} 
-                       onChange={e => setFormData({...formData, principal: Math.max(0, Number(e.target.value))})} 
+                       onChange={e => setFormData({...formData, principal: e.target.value === '' ? '' : Math.max(0, Number(e.target.value))})} 
                        className="w-full px-4 py-2 rounded-xl border border-slate-200"
                      />
                  </div>
@@ -525,7 +530,7 @@ export const LoanTracker: React.FC = () => {
                               type="number" 
                               min="0"
                               value={formData.rate} 
-                              onChange={e => setFormData({...formData, rate: Math.max(0, Number(e.target.value))})} 
+                              onChange={e => setFormData({...formData, rate: e.target.value === '' ? '' : Math.max(0, Number(e.target.value))})} 
                               className="w-full px-4 py-2 pr-8 rounded-xl border border-slate-200"
                             />
                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
@@ -559,7 +564,7 @@ export const LoanTracker: React.FC = () => {
                  </div>
                  <div>
                     <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Late Fee (₹ per day)</label>
-                    <input type="number" value={formData.penalty} onChange={e => setFormData({...formData, penalty: Number(e.target.value)})} className="w-full px-4 py-2 rounded-xl border border-slate-200"/>
+                    <input type="number" value={formData.penalty} onChange={e => setFormData({...formData, penalty: e.target.value === '' ? '' : Number(e.target.value)})} className="w-full px-4 py-2 rounded-xl border border-slate-200"/>
                  </div>
                </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -569,7 +574,7 @@ export const LoanTracker: React.FC = () => {
                        type="number" 
                        min="1"
                        value={formData.tenure} 
-                       onChange={e => setFormData({...formData, tenure: Math.max(1, Number(e.target.value))})} 
+                       onChange={e => setFormData({...formData, tenure: e.target.value === '' ? '' : Math.max(1, Number(e.target.value))})} 
                        className="w-full px-4 py-2 rounded-xl border border-slate-200"
                      />
                   </div>
