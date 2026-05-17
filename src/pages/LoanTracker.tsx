@@ -515,10 +515,10 @@ export const LoanTracker: React.FC = () => {
                  <div>
                     <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Principal (₹)</label>
                      <input 
-                       type="number" 
-                       min="0"
+                       type="text" 
+                       inputMode="decimal"
                        value={formData.principal} 
-                       onChange={e => setFormData({...formData, principal: e.target.value === '' ? '' : Math.max(0, Number(e.target.value))})} 
+                       onChange={e => setFormData({...formData, principal: e.target.value.replace(/[^0-9.]/g, '')})} 
                        className="w-full px-4 py-2 rounded-xl border border-slate-200"
                      />
                  </div>
@@ -527,10 +527,10 @@ export const LoanTracker: React.FC = () => {
                     <div className="flex gap-2">
                         <div className="relative flex-1">
                             <input 
-                              type="number" 
-                              min="0"
+                              type="text" 
+                              inputMode="decimal"
                               value={formData.rate} 
-                              onChange={e => setFormData({...formData, rate: e.target.value === '' ? '' : Math.max(0, Number(e.target.value))})} 
+                              onChange={e => setFormData({...formData, rate: e.target.value.replace(/[^0-9.]/g, '')})} 
                               className="w-full px-4 py-2 pr-10 rounded-xl border border-slate-200"
                             />
                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
@@ -564,17 +564,17 @@ export const LoanTracker: React.FC = () => {
                  </div>
                  <div>
                     <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Late Fee (₹ per day)</label>
-                    <input type="number" value={formData.penalty} onChange={e => setFormData({...formData, penalty: e.target.value === '' ? '' : Number(e.target.value)})} className="w-full px-4 py-2 rounded-xl border border-slate-200"/>
+                    <input type="text" inputMode="decimal" value={formData.penalty} onChange={e => setFormData({...formData, penalty: e.target.value.replace(/[^0-9.]/g, '')})} className="w-full px-4 py-2 rounded-xl border border-slate-200"/>
                  </div>
                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                      <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Tenure (Months)</label>
                      <input 
-                       type="number" 
-                       min="1"
+                       type="text" 
+                       inputMode="numeric"
                        value={formData.tenure} 
-                       onChange={e => setFormData({...formData, tenure: e.target.value === '' ? '' : Math.max(1, Number(e.target.value))})} 
+                       onChange={e => setFormData({...formData, tenure: e.target.value.replace(/[^0-9]/g, '')})} 
                        className="w-full px-4 py-2 rounded-xl border border-slate-200"
                      />
                   </div>
