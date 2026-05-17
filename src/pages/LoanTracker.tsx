@@ -511,7 +511,7 @@ export const LoanTracker: React.FC = () => {
                   <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Display Name (Counterparty)</label>
                   <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-slate-200" placeholder="e.g. John Doe"/>
                </div>
-               <div className="grid grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <div>
                     <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Principal (₹)</label>
                      <input 
@@ -531,7 +531,7 @@ export const LoanTracker: React.FC = () => {
                               min="0"
                               value={formData.rate} 
                               onChange={e => setFormData({...formData, rate: e.target.value === '' ? '' : Math.max(0, Number(e.target.value))})} 
-                              className="w-full px-4 py-2 pr-8 rounded-xl border border-slate-200"
+                              className="w-full px-4 py-2 pr-10 rounded-xl border border-slate-200"
                             />
                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
                         </div>
@@ -550,7 +550,7 @@ export const LoanTracker: React.FC = () => {
                      </div>
                  </div>
                </div>
-               <div className="grid grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <div>
                     <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Interest Logic</label>
                     <select 
@@ -567,7 +567,7 @@ export const LoanTracker: React.FC = () => {
                     <input type="number" value={formData.penalty} onChange={e => setFormData({...formData, penalty: e.target.value === '' ? '' : Number(e.target.value)})} className="w-full px-4 py-2 rounded-xl border border-slate-200"/>
                  </div>
                </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                      <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Tenure (Months)</label>
                      <input 
@@ -591,7 +591,7 @@ export const LoanTracker: React.FC = () => {
                      </select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                      <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Agreement Date</label>
                      <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-slate-200"/>
