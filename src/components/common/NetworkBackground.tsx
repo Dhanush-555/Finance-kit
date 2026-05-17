@@ -11,7 +11,7 @@ interface Particle {
 
 export const NetworkBackground: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationFrameId = useRef<number>();
+  const animationFrameId = useRef<number>(0);
   const mouse = useRef({ x: -1000, y: -1000 });
   const particles = useRef<Particle[]>([]);
 

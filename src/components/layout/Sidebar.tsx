@@ -1,9 +1,8 @@
 import React from 'react';
-import { NavLink, useLocation, Link } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { LayoutDashboard, Users, CreditCard, Calculator, History, LogOut, ShieldCheck } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext';
 import { t } from '../../i18n/i18n';
-import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
 
 const MotionLink = motion(Link);

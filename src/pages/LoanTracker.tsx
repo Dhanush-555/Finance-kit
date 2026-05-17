@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useFinance } from '../context/FinanceContext';
 import { t } from '../i18n/i18n';
-import { TrendingUp, TrendingDown, Plus, Search, Calendar, CheckCircle, Trash2, Edit2, FileText, MessageCircle, Sparkles, BookOpen } from 'lucide-react';
+import { Plus, Calendar, CheckCircle, Trash2, Edit2, FileText, MessageCircle, Sparkles, BookOpen } from 'lucide-react';
 import { generateReceiptPDF, sendWhatsAppReceipt } from '../utils/receiptGenerator';
 import { calculateEMI, generateAmortizationSchedule } from '../utils/calculations';
 import { analyzeLoanHealth, generateSmartSuggestions } from '../utils/suggestionEngine';

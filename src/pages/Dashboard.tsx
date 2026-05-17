@@ -28,7 +28,7 @@ const itemVariants = {
 import toast from 'react-hot-toast';
 
 export const Dashboard: React.FC = () => {
-  const { language, loans, chits, transactions, isAdmin, liveInterest, isStealthMode } = useFinance();
+  const { language, loans, chits, transactions, isAdmin, isStealthMode } = useFinance();
 
   // Smart notification check
   React.useEffect(() => {
