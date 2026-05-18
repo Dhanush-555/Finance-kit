@@ -1,7 +1,7 @@
 import React from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { t } from '../i18n/i18n';
-import { TrendingUp, TrendingDown, Wallet, Calendar, CheckCircle, Percent, Sparkles } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, CheckCircle, Percent, Sparkles } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { generateSmartSuggestions } from '../utils/suggestionEngine';
 import { SuggestionCard } from '../components/finance/SuggestionCard';
@@ -26,6 +26,29 @@ const itemVariants = {
 };
 
 import toast from 'react-hot-toast';
+
+// Helper to get initials
+const getInitials = (name: string) => {
+  if (!name) return '??';
+  return name.trim().split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+};
+
+// Helper to get deterministic gradient
+const getAvatarColor = (name: string) => {
+  if (!name) return 'from-slate-500 to-slate-600';
+  const gradients = [
+    'from-indigo-500 to-blue-600 shadow-indigo-500/20',
+    'from-emerald-500 to-teal-600 shadow-emerald-500/20',
+    'from-violet-500 to-purple-600 shadow-violet-500/20',
+    'from-rose-500 to-pink-600 shadow-rose-500/20',
+    'from-amber-500 to-orange-600 shadow-amber-500/20'
+  ];
+  let sum = 0;
+  for (let i = 0; i < name.length; i++) {
+    sum += name.charCodeAt(i);
+  }
+  return gradients[sum % gradients.length];
+};
 
 export const Dashboard: React.FC = () => {
   const { language, loans, chits, transactions, isAdmin, isStealthMode } = useFinance();
@@ -187,8 +210,8 @@ export const Dashboard: React.FC = () => {
                 whileHover={{ scale: 1.02 }}
                 className="group flex items-center gap-4 p-4 bg-fintech-bg hover:bg-emerald-50 rounded-2xl border border-fintech-border hover:border-emerald-100 transition-all cursor-pointer"
               >
-                <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-slate-400 group-hover:text-emerald-500 transition-colors">
-                   <Calendar size={20} />
+                <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(emi.person)} shadow-sm flex items-center justify-center text-white flex-shrink-0 font-black`}>
+                   <span className="text-[10px] font-black text-white">{getInitials(emi.person)}</span>
                 </div>
                 <div className="overflow-hidden">
                    <p className="text-sm font-black text-slate-900 truncate tracking-tight">{emi.person}</p>

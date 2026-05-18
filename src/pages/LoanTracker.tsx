@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useFinance } from '../context/FinanceContext';
 import { t } from '../i18n/i18n';
-import { Plus, Calendar, CheckCircle, Trash2, Edit2, FileText, MessageCircle, Sparkles, BookOpen, ChevronDown, ChevronUp, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { Plus, Calendar, CheckCircle, Trash2, Edit2, FileText, MessageCircle, Sparkles, BookOpen, ChevronDown, ChevronUp, ArrowDownLeft, ArrowUpRight, Search } from 'lucide-react';
 import { generateReceiptPDF, sendWhatsAppReceipt } from '../utils/receiptGenerator';
 import { calculateEMI, generateAmortizationSchedule } from '../utils/calculations';
 import { analyzeLoanHealth, generateSmartSuggestions } from '../utils/suggestionEngine';
@@ -10,12 +10,37 @@ import { SuggestionCard } from '../components/finance/SuggestionCard';
 import type { Loan } from '../types';
 import confetti from 'canvas-confetti';
 
+// Helper to get name initials for avatar
+const getInitials = (name: string) => {
+  if (!name) return '??';
+  return name.trim().split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+};
+
+// Helper to assign a deterministic gradient background based on member name
+const getAvatarColor = (name: string) => {
+  if (!name) return 'from-slate-500 to-slate-600';
+  const gradients = [
+    'from-indigo-500 to-blue-600 shadow-indigo-500/20',
+    'from-emerald-500 to-teal-600 shadow-emerald-500/20',
+    'from-violet-500 to-purple-600 shadow-violet-500/20',
+    'from-rose-500 to-pink-600 shadow-rose-500/20',
+    'from-amber-500 to-orange-600 shadow-amber-500/20'
+  ];
+  let sum = 0;
+  for (let i = 0; i < name.length; i++) {
+    sum += name.charCodeAt(i);
+  }
+  return gradients[sum % gradients.length];
+};
+
 export const LoanTracker: React.FC = () => {
   const { language, loans, setLoans, setTransactions, isAdmin, user, allProfiles } = useFinance();
    const [showModal, setShowModal] = useState(false);
   const [expandedLoan, setExpandedLoan] = useState<string | null>(null);
   const [editingLoanId, setEditingLoanId] = useState<string | null>(null);
   const [expandedEmiId, setExpandedEmiId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'given' | 'taken'>('all');
   
   // Form State
   const [formData, setFormData] = useState({
@@ -236,8 +261,50 @@ export const LoanTracker: React.FC = () => {
         )}
       </div>
 
+      {/* Advanced Search & Responsive Filter Bar */}
+      <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+         <div className="relative w-full md:max-w-sm">
+            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400 pointer-events-none">
+               <Search size={16} />
+            </span>
+            <input 
+               type="text" 
+               placeholder="Search borrower or lender name..." 
+               value={searchQuery}
+               onChange={e => setSearchQuery(e.target.value)}
+               className="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+            />
+         </div>
+         <div className="flex bg-slate-100 p-1 rounded-xl w-full md:w-auto">
+            <button 
+               onClick={() => setFilterType('all')}
+               className={`flex-1 md:flex-none px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${filterType === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            >
+               All Loans
+            </button>
+            <button 
+               onClick={() => setFilterType('given')}
+               className={`flex-1 md:flex-none px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${filterType === 'given' ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/10' : 'text-slate-500 hover:text-slate-800'}`}
+            >
+               Given
+            </button>
+            <button 
+               onClick={() => setFilterType('taken')}
+               className={`flex-1 md:flex-none px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${filterType === 'taken' ? 'bg-orange-600 text-white shadow-sm shadow-orange-500/10' : 'text-slate-500 hover:text-slate-800'}`}
+            >
+               Taken
+            </button>
+         </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-6">
-        {loans.map(loan => {
+        {loans
+          .filter(loan => {
+            const matchesSearch = loan.borrowerOrLenderName.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesType = filterType === 'all' || loan.type === filterType;
+            return matchesSearch && matchesType;
+          })
+          .map(loan => {
           const paidAmount = loan.emis.filter(e => e.status === 'paid').reduce((acc, curr) => acc + curr.amount + (curr.penalty || 0), 0);
           const totalExpected = loan.totalRepaymentAmount;
           const progress = (paidAmount / totalExpected) * 100;
@@ -264,12 +331,21 @@ export const LoanTracker: React.FC = () => {
               <div className="p-6 md:p-8">
                 <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
                   <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${loan.type === 'given' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
-                        {loan.type}
-                      </span>
-                      <h3 className="font-black text-slate-900 text-xl tracking-tight">{loan.borrowerOrLenderName}</h3>
-                    </div>
+                    <div className="flex items-center gap-3.5 mb-2">
+                     {/* Unique Gradient Initial Avatar to visually differentiate borrowers */}
+                     <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${getAvatarColor(loan.borrowerOrLenderName)} text-white font-black text-sm flex items-center justify-center shadow-md`}>
+                        {getInitials(loan.borrowerOrLenderName)}
+                     </div>
+                     <div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${loan.type === 'given' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
+                            {loan.type}
+                          </span>
+                          <h3 className="font-black text-slate-900 text-lg md:text-xl tracking-tight">{loan.borrowerOrLenderName}</h3>
+                        </div>
+                        <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-0.5">Active Account</p>
+                     </div>
+                  </div>
                     <p className="text-slate-400 text-sm font-medium flex items-center gap-1">
                       <Calendar size={14} /> Started: {new Date(loan.loanDate).toLocaleDateString('en-IN')}
                     </p>
