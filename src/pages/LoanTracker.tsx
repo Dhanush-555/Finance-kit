@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useFinance } from '../context/FinanceContext';
 import { t } from '../i18n/i18n';
-import { Plus, Calendar, CheckCircle, Trash2, Edit2, FileText, MessageCircle, Sparkles, BookOpen } from 'lucide-react';
+import { Plus, Calendar, CheckCircle, Trash2, Edit2, FileText, MessageCircle, Sparkles, BookOpen, ChevronDown, ChevronUp, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { generateReceiptPDF, sendWhatsAppReceipt } from '../utils/receiptGenerator';
 import { calculateEMI, generateAmortizationSchedule } from '../utils/calculations';
 import { analyzeLoanHealth, generateSmartSuggestions } from '../utils/suggestionEngine';
@@ -15,6 +15,7 @@ export const LoanTracker: React.FC = () => {
    const [showModal, setShowModal] = useState(false);
   const [expandedLoan, setExpandedLoan] = useState<string | null>(null);
   const [editingLoanId, setEditingLoanId] = useState<string | null>(null);
+  const [expandedEmiId, setExpandedEmiId] = useState<string | null>(null);
   
   // Form State
   const [formData, setFormData] = useState({
@@ -363,7 +364,8 @@ export const LoanTracker: React.FC = () => {
               
               {expandedLoan === loan.id && (
                 <div className="bg-slate-50 border-t border-slate-100 animate-in slide-in-from-top-4 duration-300">
-                  <div className="p-6 md:p-8 overflow-x-auto">
+                  {/* Desktop Spreadsheet Table View (Visible only on desktop md and up) */}
+                  <div className="hidden md:block p-6 md:p-8 overflow-x-auto">
                      <table className="w-full text-left">
                         <thead>
                            <tr>
@@ -466,6 +468,160 @@ export const LoanTracker: React.FC = () => {
                            })}
                         </tbody>
                      </table>
+                  </div>
+
+                  {/* Mobile Indian Banking Passbook UI (Visible only on mobile md screens and below) */}
+                  <div className="block md:hidden space-y-4 p-4 bg-slate-50 border-t border-slate-100">
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                        Digital Passbook Statement
+                     </p>
+                     <div className="space-y-3 divide-y divide-slate-100 bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+                        {loan.emis.map((emi, i) => {
+                          const isOverdue = emi.status === 'pending' && new Date() > new Date(emi.dueDate);
+                          const principalForMonth = emi.principalPaid !== undefined ? emi.principalPaid : (emi.amount - (((loan.principal * loan.interestRate * (loan.tenureMonths / 12)) / 100) / loan.tenureMonths));
+                          const interestForMonth = emi.interest !== undefined ? emi.interest : (emi.amount - principalForMonth);
+                          const isEmiExpanded = expandedEmiId === emi.id;
+
+                          return (
+                            <div key={emi.id} className="pt-3 first:pt-0">
+                               <div 
+                                  onClick={() => setExpandedEmiId(isEmiExpanded ? null : emi.id)}
+                                  className="flex justify-between items-center cursor-pointer py-1"
+                               >
+                                  <div className="flex items-center gap-3">
+                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shadow-sm transition-all ${
+                                        emi.status === 'paid' 
+                                           ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
+                                           : (isOverdue ? 'bg-red-50 text-red-600 border border-red-100 animate-pulse' : 'bg-amber-50 text-amber-600 border border-amber-100')
+                                     }`}>
+                                        {emi.status === 'paid' ? (
+                                           <ArrowDownLeft size={16} />
+                                        ) : (
+                                           <ArrowUpRight size={16} />
+                                        )}
+                                     </div>
+                                     <div>
+                                        <p className="text-sm font-black text-slate-900 tracking-tight">
+                                           EMI #{i + 1}
+                                        </p>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">
+                                           {new Date(emi.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                        </p>
+                                     </div>
+                                  </div>
+                                  <div className="text-right flex items-center gap-3">
+                                     <div>
+                                        <p className={`text-sm font-black tracking-tight ${
+                                           emi.status === 'paid' ? 'text-emerald-600' : (isOverdue ? 'text-red-500' : 'text-slate-800')
+                                        }`}>
+                                           {emi.status === 'paid' ? '+' : '-'} ₹{emi.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                        </p>
+                                        <span className={`inline-block text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md ${
+                                           emi.status === 'paid' 
+                                              ? 'bg-emerald-100/70 text-emerald-800' 
+                                              : (isOverdue ? 'bg-red-100/70 text-red-800' : 'bg-amber-100/70 text-amber-800')
+                                        }`}>
+                                           {emi.status.toUpperCase()}
+                                        </span>
+                                     </div>
+                                     <div className="text-slate-300">
+                                        {isEmiExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                     </div>
+                                  </div>
+                               </div>
+
+                               {isEmiExpanded && (
+                                  <div className="mt-3 bg-slate-50 border border-dashed border-slate-200 rounded-xl p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+                                     <div className="flex justify-between items-center border-b border-dashed border-slate-200 pb-2">
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Transaction ID</span>
+                                        <span className="text-[10px] font-mono font-bold text-slate-600 uppercase">{emi.id.slice(0, 16)}</span>
+                                     </div>
+                                     
+                                     <div className="space-y-1.5">
+                                        <div className="flex justify-between text-xs">
+                                           <span className="font-bold text-slate-400">Installment Period</span>
+                                           <span className="font-black text-slate-700">Month #{i + 1} of {loan.tenureMonths}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs">
+                                           <span className="font-bold text-slate-400">Principal Repayment</span>
+                                           <span className="font-black text-slate-700">₹{principalForMonth.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs">
+                                           <span className="font-bold text-slate-400">Interest Accrued</span>
+                                           <span className="font-black text-amber-600">₹{interestForMonth.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs">
+                                           <span className="font-bold text-slate-400">Late Penalty Fee</span>
+                                           <span className={`font-black ${emi.penalty ? 'text-red-500' : 'text-slate-500'}`}>
+                                              ₹{emi.penalty ? emi.penalty.toFixed(2) : '0.00'}
+                                           </span>
+                                        </div>
+                                        {emi.status === 'paid' && emi.paidDate && (
+                                           <div className="flex justify-between text-xs">
+                                              <span className="font-bold text-slate-400">Payment Date</span>
+                                              <span className="font-black text-emerald-600">
+                                                 {new Date(emi.paidDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                              </span>
+                                           </div>
+                                        )}
+                                        <div className="flex justify-between text-xs border-t border-dashed border-slate-200 pt-2 font-black">
+                                           <span className="text-slate-500">Remaining Balance</span>
+                                           <span className="text-orange-600">
+                                              {emi.status === 'paid' ? '₹0.00' : `₹${(emi as any).balance ? (emi as any).balance.toFixed(2) : '...'}`}
+                                           </span>
+                                        </div>
+                                     </div>
+
+                                     {/* Quick Mobile Action Buttons Bar */}
+                                     <div className="flex gap-2 pt-2 border-t border-slate-200/50">
+                                        {emi.status === 'pending' && isAdmin && (
+                                           <button 
+                                              onClick={() => markEMIPaid(loan.id, emi.id)}
+                                              className="flex-1 text-[10px] font-black uppercase tracking-widest text-white bg-emerald-500 hover:bg-emerald-600 active:scale-95 py-2.5 rounded-lg transition-all text-center shadow-md shadow-emerald-500/20"
+                                           >
+                                              Receive Payment
+                                           </button>
+                                        )}
+                                        {emi.status === 'paid' && (
+                                           <>
+                                              <button 
+                                                 onClick={async () => {
+                                                    const pdf = await generateReceiptPDF({
+                                                       receiptNo: emi.id.slice(0, 8).toUpperCase(),
+                                                       date: new Date().toLocaleDateString('en-IN'),
+                                                       customerName: loan.borrowerOrLenderName,
+                                                       amount: emi.amount + (emi.penalty || 0),
+                                                       paymentFor: `EMI #${i + 1} for ${loan.borrowerOrLenderName}`,
+                                                       paymentMode: 'Digital/Cash'
+                                                    });
+                                                    pdf.save(`Receipt_${loan.borrowerOrLenderName}_EMI${i+1}.pdf`);
+                                                 }}
+                                                 className="flex-1 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 py-2 rounded-lg transition-all"
+                                              >
+                                                 <FileText size={12} /> Receipt
+                                              </button>
+                                              <button 
+                                                 onClick={() => {
+                                                    sendWhatsAppReceipt('919999999999', { // Placeholder
+                                                       customerName: loan.borrowerOrLenderName,
+                                                       amount: emi.amount + (emi.penalty || 0),
+                                                       paymentFor: `EMI #${i + 1} for ${loan.borrowerOrLenderName}`
+                                                    });
+                                                 }}
+                                                 className="flex-1 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 py-2 rounded-lg transition-all"
+                                              >
+                                                 <MessageCircle size={12} /> WhatsApp
+                                              </button>
+                                           </>
+                                        )}
+                                     </div>
+                                  </div>
+                               )}
+                            </div>
+                          );
+                        })}
+                     </div>
                   </div>
                 </div>
               )}
