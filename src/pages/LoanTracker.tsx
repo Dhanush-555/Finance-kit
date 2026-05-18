@@ -532,7 +532,7 @@ export const LoanTracker: React.FC = () => {
                                </div>
 
                                {isEmiExpanded && (
-                                  <div className="mt-3 bg-slate-50 border border-dashed border-slate-200 rounded-xl p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+                                  <div className="mt-3 bg-slate-50 border border-dashed border-slate-200 rounded-xl p-4 space-y-3 animate-spring-down">
                                      <div className="flex justify-between items-center border-b border-dashed border-slate-200 pb-2">
                                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Transaction ID</span>
                                         <span className="text-[10px] font-mono font-bold text-slate-600 uppercase">{emi.id.slice(0, 16)}</span>
@@ -578,7 +578,7 @@ export const LoanTracker: React.FC = () => {
                                         {emi.status === 'pending' && isAdmin && (
                                            <button 
                                               onClick={() => markEMIPaid(loan.id, emi.id)}
-                                              className="flex-1 text-[10px] font-black uppercase tracking-widest text-white bg-emerald-500 hover:bg-emerald-600 active:scale-95 py-2.5 rounded-lg transition-all text-center shadow-md shadow-emerald-500/20"
+                                              className="flex-1 btn-bounce text-[10px] font-black uppercase tracking-widest text-white bg-emerald-500 hover:bg-emerald-600 py-2.5 rounded-lg text-center shadow-md shadow-emerald-500/20"
                                            >
                                               Receive Payment
                                            </button>
@@ -597,7 +597,7 @@ export const LoanTracker: React.FC = () => {
                                                     });
                                                     pdf.save(`Receipt_${loan.borrowerOrLenderName}_EMI${i+1}.pdf`);
                                                  }}
-                                                 className="flex-1 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 py-2 rounded-lg transition-all"
+                                                 className="flex-1 btn-bounce flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 py-2 rounded-lg"
                                               >
                                                  <FileText size={12} /> Receipt
                                               </button>
@@ -609,7 +609,7 @@ export const LoanTracker: React.FC = () => {
                                                        paymentFor: `EMI #${i + 1} for ${loan.borrowerOrLenderName}`
                                                     });
                                                  }}
-                                                 className="flex-1 flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 py-2 rounded-lg transition-all"
+                                                 className="flex-1 btn-bounce flex items-center justify-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 py-2 rounded-lg"
                                               >
                                                  <MessageCircle size={12} /> WhatsApp
                                               </button>
