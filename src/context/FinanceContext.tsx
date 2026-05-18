@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { Login } from '../pages/Login';
 import type { ChitGroup, Loan, Transaction } from '../types';
 import type { Language } from '../i18n/i18n';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ShieldCheck } from 'lucide-react';
 
 interface UserProfile {
   id: string;
@@ -64,10 +64,16 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [loans]);
 
   useEffect(() => {
-    // Safety Timeout: Force stop loading after 5 seconds if stuck
+    // Fast Check: If there's no active Supabase auth token key in localStorage, bypass loading immediately
+    const hasLocalSession = Object.keys(localStorage).some(key => key.startsWith('sb-') && key.endsWith('-auth-token'));
+    if (!hasLocalSession) {
+      setAuthLoading(false);
+    }
+
+    // Safety Timeout: Force stop loading after 3 seconds if stuck
     const timer = setTimeout(() => {
       setAuthLoading(false);
-    }, 5000);
+    }, 3000);
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -163,10 +169,24 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950">
-        <div className="flex flex-col items-center gap-4 text-emerald-500">
-          <RefreshCw className="w-8 h-8 animate-spin" />
-          <p className="text-slate-400 font-medium">Securing Session...</p>
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 relative overflow-hidden">
+        {/* Glowing luxury background mesh */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-gradient-to-tr from-indigo-500/10 via-emerald-500/5 to-fintech-gold/10 rounded-full blur-[80px] pointer-events-none"></div>
+        
+        <div className="flex flex-col items-center gap-6 z-10 p-8 rounded-3xl bg-slate-900/40 backdrop-blur-xl border border-slate-800/60 max-w-sm w-full mx-4 shadow-2xl text-center">
+          <div className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800">
+             {/* Spinning Gold accent ring */}
+             <div className="absolute inset-0 rounded-2xl border-2 border-dashed border-fintech-gold/30 animate-spin" style={{ animationDuration: '6s' }}></div>
+             <ShieldCheck className="w-8 h-8 text-fintech-gold animate-pulse" />
+          </div>
+          <div className="space-y-1.5">
+             <h4 className="text-white font-black text-lg tracking-tight">Securing Your Session</h4>
+             <p className="text-slate-400 text-xs font-medium leading-relaxed px-4">Decrypting your secure financial vault & establishing encrypted database uplink...</p>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-950 border border-slate-900">
+             <RefreshCw className="w-3.5 h-3.5 text-fintech-gold animate-spin" />
+             <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Verifying Node</span>
+          </div>
         </div>
       </div>
     );
