@@ -515,7 +515,7 @@ export const LoanTracker: React.FC = () => {
                                         <p className={`text-sm font-black tracking-tight ${
                                            emi.status === 'paid' ? 'text-emerald-600' : (isOverdue ? 'text-red-500' : 'text-slate-800')
                                         }`}>
-                                           {emi.status === 'paid' ? '+' : '-'} ₹{emi.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                           ₹{emi.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                         </p>
                                         <span className={`inline-block text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md ${
                                            emi.status === 'paid' 
